@@ -1,87 +1,174 @@
-from fastapi import APIRouter, HTTPException, Depends
-from .models import Book
+from fastapi import APIRouter, Depends, HTTPException
+from sqlalchemy.orm import Session
+
+from .schemas import BookCreate, BookUpdate
 from .auth import get_current_admin
+from .database import get_db
+from .models import Book as BookModel
 
-router=APIRouter()
+router = APIRouter()
 
-Books = []
 
 # Endpoint 1 - Create a Book
 @router.post("/books")
-def create_book(book: Book, current_admin = Depends(get_current_admin)):
-    for existing_book in Books:
-        if book.BookID == existing_book.BookID:
-            raise HTTPException(status_code=409, detail="Book ID already exists")
+def create_book(
+    book: BookCreate,
+    db: Session = Depends(get_db),
+    current_admin=Depends(get_current_admin)
+):
+    new_book = BookModel(
+        book_name=book.BookName,
+        author=book.Author,
+        year=book.Year
+    )
 
-    Books.append(book)
+    db.add(new_book)
+    db.commit()
+    db.refresh(new_book)
 
     return {
         "message": "Book added successfully",
-        "book": book
+        "book": {
+            "BookID": new_book.bookid,
+            "BookName": new_book.book_name,
+            "Author": new_book.author,
+            "Year": new_book.year
+        }
     }
 
 
 # Endpoint 2 - Get all books by an author
 @router.get("/books")
-def display_books(author: str):
-    author_books = []
+def display_books(author: str, db: Session = Depends(get_db)):
 
-    for book in Books:
-        if book.Author == author:
-            author_books.append(book)
+    books = db.query(BookModel).filter(
+        BookModel.author == author
+    ).all()
 
-    if not author_books:
-        raise HTTPException(status_code=404, detail="Author not found")
-
-    return author_books
+    if not books:
+          return { "Message": " Error 404  Author not found."   }
+    return [
+        {
+            "BookID": book.bookid,
+            "BookName": book.book_name,
+            "Author": book.author,
+            "Year": book.year
+        }
+        for book in books
+    ]
 
 
 # Endpoint 3 - Get a specific book by ID
 @router.get("/books/{book_id}")
-def specific_book(book_id: int):
-    for existing_book in Books:
-        if existing_book.BookID == book_id:
-            return existing_book
+def specific_book(book_id: int, db: Session = Depends(get_db)):
 
-    raise HTTPException(status_code=404, detail="Book ID does not exist")
+    book = db.query(BookModel).filter(
+        BookModel.bookid == book_id
+    ).first()
+
+    if not book:
+          return { "Message": " Error 404  Book ID does not exist."   }
+
+    return {
+        "BookID": book.bookid,
+        "BookName": book.book_name,
+        "Author": book.author,
+        "Year": book.year
+    }
 
 
 # Endpoint 4 - Update an entire book
 @router.put("/books/{book_id}")
-def update_book(book_id: int, book: Book, current_admin = Depends(get_current_admin)):
-    for existing_book in Books:
-        if existing_book.BookID == book_id:
-            existing_book.BookName = book.BookName
-            existing_book.Author = book.Author
-            existing_book.Year = book.Year
-            return {
-                "message": "Book updated successfully",
-                "book": existing_book
-            }
+def update_book(
+    book_id: int,
+    book: BookCreate,
+    db: Session = Depends(get_db),
+    current_admin=Depends(get_current_admin)
+):
 
-    raise HTTPException(status_code=404, detail="Book ID does not exist")
+    existing_book = db.query(BookModel).filter(
+        BookModel.bookid == book_id
+    ).first()
+
+    if not existing_book:
+          return { "Message": " Error 404  Book ID does not exist."   }
+    
+    existing_book.book_name = book.BookName
+    existing_book.author = book.Author
+    existing_book.year = book.Year
+
+    db.commit()
+    db.refresh(existing_book)
+
+    return {
+        "message": "Book updated successfully",
+        "book": {
+            "BookID": existing_book.bookid,
+            "BookName": existing_book.book_name,
+            "Author": existing_book.author,
+            "Year": existing_book.year
+        }
+    }
 
 
-# Endpoint 5 - Update only the book name
+# Endpoint 5 - Partial book updation
 @router.patch("/books/{book_id}")
-def name_change(book_id: int, bookname: str, current_admin = Depends(get_current_admin)):
-    for existing_book in Books:
-        if existing_book.BookID == book_id:
-            existing_book.BookName = bookname
-            return {
-                "message": "Book name updated successfully",
-                "book": existing_book
-            }
+def update_book_partial(
+    book_id: int,
+    book: BookUpdate,
+    db: Session = Depends(get_db),
+    current_admin=Depends(get_current_admin)
+):
+    existing_book = (
+        db.query(BookModel)
+        .filter(BookModel.bookid == book_id)
+        .first()
+    )
 
-    raise HTTPException(status_code=404, detail="Book ID does not exist")
+    if not existing_book:
+          return { "Message": " Error 404  Book ID does not exist."   }
+
+    if book.BookName is not None:
+        existing_book.book_name = book.BookName
+
+    if book.Author is not None:
+        existing_book.author = book.Author
+
+    if book.Year is not None:
+        existing_book.year = book.Year
+
+    db.commit()
+    db.refresh(existing_book)
+
+    return {
+        "message": "Book updated successfully",
+        "book": {
+            "BookID": existing_book.bookid,
+            "BookName": existing_book.book_name,
+            "Author": existing_book.author,
+            "Year": existing_book.year
+        }
+    }
 
 
 # Endpoint 6 - Delete a book
 @router.delete("/books/{book_id}")
-def delete_book(book_id: int, current_admin = Depends(get_current_admin)):
-    for existing_book in Books:
-        if existing_book.BookID == book_id:
-            Books.remove(existing_book)
-            return {"message": "Deletion successful"}
+def delete_book(
+    book_id: int,
+    db: Session = Depends(get_db),
+    current_admin=Depends(get_current_admin)
+):
 
-    raise HTTPException(status_code=404, detail="Book ID does not exist")
+    existing_book = db.query(BookModel).filter(
+        BookModel.bookid == book_id
+    ).first()
+
+    if not existing_book:
+          return { "Message": " Error 404  Book ID does not exist."   }
+    
+    db.delete(existing_book)
+    db.commit()
+
+    return {
+        "message": "Deletion successful"
+    }
