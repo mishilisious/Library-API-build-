@@ -1,13 +1,33 @@
 from sqlalchemy import Column, Integer, Text, ForeignKey, TIMESTAMP
 from .database import Base
 
+class Author(Base):
+    __tablename__ = "authors"
+
+    authorid = Column(Integer, primary_key=True, autoincrement=True)
+    author_name = Column(Text, nullable=False, unique=True)
+
+class BookAuthor(Base):
+    __tablename__ = "bookauthors"
+
+    bookid = Column(
+        Integer,
+        ForeignKey("books.bookid"),
+        primary_key=True
+    )
+
+    authorid = Column(
+        Integer,
+        ForeignKey("authors.authorid"),
+        primary_key=True
+    )
+
 
 class Book(Base):
     __tablename__ = "books"
 
     bookid = Column(Integer, primary_key=True, autoincrement=True)
     book_name = Column(Text, nullable=False)
-    author = Column(Text, nullable=False)
     year = Column(Integer, nullable=False)
 
 

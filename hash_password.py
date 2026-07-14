@@ -5,7 +5,7 @@ pwd_context = CryptContext(
     deprecated="auto"
 )
 
-password = "password123"
+password = "amishipassword"
 
 print(
     pwd_context.hash(password)

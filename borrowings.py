@@ -60,30 +60,22 @@ def my_borrowings(
     current_user: User = Depends(get_current_user)
 ):
 
-    borrowings = db.query(Borrowing).filter(
-        Borrowing.userid == current_user.userid
-    ).all()
+    borrowings = (
+        db.query(Borrowing)
+        .filter(Borrowing.userid == current_user.userid)
+        .all()
+    )
 
-    results = []
-
-    for borrowing in borrowings:
-
-        book = db.query(Book).filter(
-            Book.bookid == borrowing.bookid
-        ).first()
-
-        results.append(
-            {
-                "borrowingid": borrowing.borrowingid,
-                "bookid": borrowing.bookid,
-                "book_name": book.book_name if book else None,
-                "author": book.author if book else None,
-                "borrowedon": borrowing.borrowedon,
-                "returnedon": borrowing.returnedon
-            }
-        )
-
-    return results
+    return [
+        {
+            "borrowingid": borrowing.borrowingid,
+            "userid": borrowing.userid,
+            "bookid": borrowing.bookid,
+            "borrowedon": borrowing.borrowedon,
+            "returnedon": borrowing.returnedon
+        }
+        for borrowing in borrowings
+    ]
 
 @router.patch("/return/{book_id}")
 def return_book(
@@ -115,6 +107,7 @@ def return_book(
         "returned_on": borrowing.returnedon
     }
 
+
 @router.get("/")
 def get_all_borrowings(
     db: Session = Depends(get_db),
@@ -123,26 +116,13 @@ def get_all_borrowings(
 
     borrowings = db.query(Borrowing).all()
 
-    results = []
-
-    for borrowing in borrowings:
-
-        user = db.query(User).filter(
-            User.userid == borrowing.userid
-        ).first()
-
-        book = db.query(Book).filter(
-            Book.bookid == borrowing.bookid
-        ).first()
-
-        results.append(
-            {
-                "borrowingid": borrowing.borrowingid,
-                "username": user.username if user else None,
-                "book_name": book.book_name if book else None,
-                "borrowedon": borrowing.borrowedon,
-                "returnedon": borrowing.returnedon
-            }
-        )
-
-    return results
+    return [
+        {
+            "borrowingid": borrowing.borrowingid,
+            "userid": borrowing.userid,
+            "bookid": borrowing.bookid,
+            "borrowedon": borrowing.borrowedon,
+            "returnedon": borrowing.returnedon
+        }
+        for borrowing in borrowings
+    ]

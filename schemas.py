@@ -8,19 +8,19 @@ class LoginRequest(BaseModel):
 
 class BookCreate(BaseModel):
     BookName: str
-    Author: str
+    Authors: list[str]
     Year: int
 
 
 class BookResponse(BaseModel):
     BookID: int
     BookName: str
-    Author: str
+    Authors: list[str]
     Year: int
 
 class BookUpdate(BaseModel):
     BookName: str | None = None
-    Author: str | None = None
+    Authors: list[str] | None = None
     Year: int | None = None
 
 class ReviewCreate(BaseModel):
@@ -31,3 +31,11 @@ class ReviewCreate(BaseModel):
 class ReviewUpdate(BaseModel):
     rating: int | None = None
     comment: str | None = None
+
+
+class AuthorCreate(BaseModel):
+    AuthorName: str
+
+
+class AuthorUpdate(BaseModel):
+    AuthorName: str | None = None

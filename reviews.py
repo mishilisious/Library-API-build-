@@ -29,6 +29,20 @@ def create_review(
 
     if not book:
         return { "Message": " Error 404  Book not found."   }
+    
+    existing_review = (
+             db.query(Review)
+            .filter(
+                 Review.userid == current_user.userid,
+                 Review.bookid == book_id
+                )
+                .first()
+            )
+
+    if existing_review:
+       return {
+        "Message": " Error 400 You have already reviewed this book."
+    }
 
     new_review = Review(
         userid=current_user.userid,
@@ -102,6 +116,9 @@ def update_review(
 
     if not review:
         return { "Message": " Error 404  Review not found."   }
+    
+    if review.userid != current_user.userid:
+        return { "Message": " Error 403 You can only edit your own reviews." }
 
     if updated_review.rating is not None:
         review.rating = updated_review.rating
@@ -136,7 +153,10 @@ def delete_review(
     )
 
     if not review:
-        return { "Message": " Error 404  Review not foind."   }
+        return { "Message": " Error 404  Review not found."   }
+    
+    if review.userid != current_user.userid:
+        return { "Message": " Error 403 You can only delete your own reviews." }
 
     db.delete(review)
     db.commit()
