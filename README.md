@@ -38,6 +38,7 @@ The project demonstrates secure backend development through JWT authentication, 
 
 ### 🔐 Authentication
 
+- User Signup
 - JWT Authentication
 - Secure password hashing
 - Role-based authorization
