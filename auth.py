@@ -2,10 +2,10 @@ from fastapi import APIRouter, Depends, HTTPException
 from jose import jwt, JWTError
 from datetime import datetime, timedelta
 from fastapi.security import OAuth2PasswordBearer
-from passlib.context import CryptContext
 from sqlalchemy.orm import Session
 
-from .schemas import LoginRequest
+from .schemas import LoginRequest, UserSignup
+from .hash_password import ( hash_password, verify_password )
 from .database import get_db
 from .models import User
 
@@ -15,20 +15,8 @@ SECRET_KEY = "this-is-my-super-secret-key"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
-pwd_context = CryptContext(
-    schemes=["bcrypt"],
-    deprecated="auto"
-)
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="login")
-
-
-def verify_password(plain_password: str, hashed_password: str):
-    return pwd_context.verify(
-        plain_password,
-        hashed_password
-    )
-
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/login")
 
 def create_access_token(data: dict):
     to_encode = data.copy()
@@ -98,6 +86,42 @@ def get_current_admin(
 
     return { "Message": " Error 403  Admin access required."   }
 
+
+@router.post("/signup")
+def signup(
+    user: UserSignup,
+    db: Session = Depends(get_db)
+):
+
+    existing_user = (
+        db.query(User)
+        .filter(User.username == user.Username)
+        .first()
+    )
+
+    if existing_user:
+        return {
+                 "Message": "Error 400 Username already exists."
+            }
+
+    new_user = User(
+        username=user.Username,
+        hashed_password=hash_password(user.Password),
+        role="user"
+    )
+
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    return {
+        "message": "User created successfully.",
+        "user": {
+            "userid": new_user.userid,
+            "username": new_user.username,
+            "role": new_user.role
+        }
+    }
 
 @router.post("/login")
 def login(
