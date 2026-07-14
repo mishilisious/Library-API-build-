@@ -173,13 +173,14 @@ This design:
 
 ---
 
+
 ## Entity Relationship Diagram
 
-> Add the ER Diagram below after creating it.
+The database follows a normalized relational design with a many-to-many relationship between **Books** and **Authors** through the **BookAuthors** junction table.
 
-```markdown
 ![ER Diagram](images/ER_Diagram.png)
-```
+
+
 
 ---
 
