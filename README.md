@@ -341,7 +341,7 @@ to explore and test every endpoint directly from your browser.
 
 ### Swagger UI Preview
 
-![Swagger UI](images/swagger.png)
+![Swagger UI](Images/swagger.png)
 
 ---
 
